@@ -1,10 +1,10 @@
 bl_info = {
     'name': "set edges length",
     'description': "edges length",
-    'author': "Giuseppe De Marco [BlenderLab] - inspired by NirenYang [BlenderCN]",
+    'author': "Giuseppe De Marco [BlenderLab] inspired by NirenYang",
     'version': (0, 0, 1),
     'blender': (2, 7, 0, 5),
-    'location': '[Toolbar][Tools][Mesh Tools][edges set]: set Length(Shit+Alt+E)',
+    'location': '[Toolbar][Tools][Mesh Tools]: set Length(Shit+Alt+E)',
     'warning': "",
     'category': 'Mesh',
     "wiki_url": "",
@@ -12,21 +12,24 @@ bl_info = {
 }
 
 
-import bpy, bmesh, mathutils
-from bpy.props import BoolProperty, FloatProperty
+import bpy
+import bmesh
+import mathutils
+from bpy.props import BoolProperty, FloatProperty, EnumProperty
 
 edge_length_debug = True
 edge_length_win_opened = False
 _error_message = 'Edge selection is needed'
 
+
 def get_selected(bmesh_obj, geometry_type):
     """
-        geometry type should be edges, verts or faces 
+    geometry type should be edges, verts or faces 
     """
     selected = []
     for i in getattr(bmesh_obj, geometry_type):
         if i.select:
-            selected.append( i )
+            selected.append(i)
     return selected
 
 
@@ -38,15 +41,29 @@ class LengthSet(bpy.types.Operator):
     
     target_length = FloatProperty(name = 'length', default = 0.0)
     
-    incremental = BoolProperty(\
-        name="incremental",\
-        default=False,\
-        description="incremental")
-
-    #~ invert_vert_pos = BoolProperty(\
-        #~ name="invert vertices position",\
+    #~ incremental = BoolProperty(\
+        #~ name="incremental",\
         #~ default=False,\
-        #~ description="inverts vertices position")
+        #~ description="incremental")
+        
+    #~ proportional_resize = BoolProperty(\
+        #~ name="proportional direction",\
+        #~ default=False,\
+        #~ description="increase the edge in a proportional direction")
+        #~ 
+    #~ invert = BoolProperty(\
+        #~ name="invert vertices",\
+        #~ default=False,\
+        #~ description="invert vertices")
+
+
+    behaviour = EnumProperty(
+        items = [('normal', 'normal', 'One'), 
+                 ('incremental', 'incremental', 'Two'),
+                 ('proportional', 'proportional', 'Three'),
+                 ('invert', 'invert', 'Three')],
+        name = "Resize behaviour")
+            
     
     me = vts_sequence = None
     edge_length_win_opened = False
@@ -60,9 +77,7 @@ class LengthSet(bpy.types.Operator):
 
         obj = context.edit_object
         bm = bmesh.from_edit_mesh(obj.data)
-            
-        
-        
+
         if bm.select_history and isinstance(bm.select_history[0], bmesh.types.BMEdge):
             vts_sequence = [i.index for i in bm.select_history[-1].verts]
             self.report({'INFO'}, str(type(bm.select_history[0])))            
@@ -81,10 +96,6 @@ class LengthSet(bpy.types.Operator):
         if not self.selected_edges:
             self.report({'ERROR'}, _error_message)
             return {'CANCELLED'}
-            
-        if self.incremental:
-            if edge_length_debug: self.report({'INFO'}, 'incremental checked')
-
         
         if edge_length_debug: self.report({'INFO'}, str(self.target_length))
 
@@ -100,7 +111,6 @@ class LengthSet(bpy.types.Operator):
         bm = bmesh.from_edit_mesh(obj.data)
         
         #self.switch_point = False
-        
         self.selected_edges = get_selected(bm, 'edges')
         
         if not self.edge_length_win_opened: 
@@ -118,7 +128,18 @@ class LengthSet(bpy.types.Operator):
                 verts = [edge.verts[0].co, edge.verts[1].co]
                 
                 if edge_length_debug: self.report({'INFO'}, 'edge '+str(edge)) 
-                vector = verts[1] - verts[0]
+                if edge_length_debug: self.report({'INFO'}, self.behaviour )
+
+
+                if self.behaviour == 'invert':
+                    vector = verts[0] - verts[1]
+                elif self.behaviour == 'proportional':
+                    vector = verts[1] - verts[0]
+                    if edge_length_debug: self.report({'WARNING'}, 'proportional not implemented yet !' )
+                    
+                else:
+                    vector = verts[1] - verts[0]
+                
                 if edge_length_debug: self.report({'INFO'}, 'edge.verts[1].co, edge.verts[0].co '+str(verts[1])+' '+str(verts[0]) )
                 if edge_length_debug: self.report({'INFO'}, 'vector '+str(vector)) 
                 vector.length = abs(self.target_length)
@@ -127,19 +148,17 @@ class LengthSet(bpy.types.Operator):
                 if edge_length_debug: self.report({'INFO'}, 'target_length'+str(vector.length)) 
 
                 if self.target_length > 0:
-                    if not self.incremental:
-                        edge.verts[0].co = verts[1] - vector
-                    else:
+
+                    edge.verts[0].co = verts[1] - vector
+                    if self.behaviour == 'incremental':
                         edge.verts[0].co = verts[0]  - vector 
 
                     if edge_length_debug: self.report({'INFO'}, 'self.target_length > 0') 
                     
-                elif self.target_length < 0:
-                    if not self.incremental:                    
-                        edge.verts[0].co = verts[1] + vector
-                    else:
+                elif self.target_length < 0:                  
+                    edge.verts[0].co = verts[1] + vector
+                    if self.behaviour == 'incremental':
                         edge.verts[0].co = verts[0]  + vector 
-                
                 #if self.invert_vert_pos:
                     # this rotate it
                     #~ a = mathutils.Vector( edge.verts[0].co )
@@ -147,8 +166,12 @@ class LengthSet(bpy.types.Operator):
                     #~ edge.verts[0].co = b
                     #~ edge.verts[1].co = a
                     #edge.verts[0].co = edge.verts[0].co - edge.verts[1].co
-                    
-                    
+                
+                # eventuale nuovo approccio:
+                # 1. trova il centro dell' edge 
+                # 2. sfrutta: bpy.ops.transform.resize(value=(2.53986, 2.53986, 2.53986), constraint_axis=(False, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+
+                
             bmesh.update_edit_mesh(obj.data, True)
         return {'FINISHED'}
 
@@ -159,7 +182,8 @@ def menu_func(self, context):
     row = self.layout.row(align=True)
     row.operator(LengthSet.bl_idname, "Set edges length")
     self.layout.separator()
-        
+    
+    
 def register():
     bpy.utils.register_class(LengthSet)
     bpy.types.VIEW3D_PT_tools_meshedit.append(menu_func)

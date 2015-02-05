@@ -12,7 +12,7 @@ bl_info = {
 }
 
 
-import bpy, bmesh
+import bpy, bmesh, mathutils
 from bpy.props import BoolProperty, FloatProperty
 
 edge_length_debug = True
@@ -60,12 +60,12 @@ class LengthSet(bpy.types.Operator):
 
         obj = context.edit_object
         bm = bmesh.from_edit_mesh(obj.data)
+            
         
-        # view only the last selected edge
-        self.report({'INFO'}, str(type(bm.select_history[0])))
         
-        if isinstance(bm.select_history[0], bmesh.types.BMEdge):
+        if bm.select_history and isinstance(bm.select_history[0], bmesh.types.BMEdge):
             vts_sequence = [i.index for i in bm.select_history[-1].verts]
+            self.report({'INFO'}, str(type(bm.select_history[0])))            
         else:
             self.report({'ERROR'}, _error_message)
             return {'CANCELLED'}        
@@ -98,7 +98,9 @@ class LengthSet(bpy.types.Operator):
         
         obj = context.edit_object
         bm = bmesh.from_edit_mesh(obj.data)
-                
+        
+        #self.switch_point = False
+        
         self.selected_edges = get_selected(bm, 'edges')
         
         if not self.edge_length_win_opened: 
@@ -109,10 +111,15 @@ class LengthSet(bpy.types.Operator):
             if edge_length_debug: self.report({'INFO'}, 'win_close')
             
             for edge in self.selected_edges:
-                    
+                
+                #~ if self.invert_vert_pos:
+                    #~ verts = [edge.verts[1].co, edge.verts[0].co]
+                #~ else:
+                verts = [edge.verts[0].co, edge.verts[1].co]
+                
                 if edge_length_debug: self.report({'INFO'}, 'edge '+str(edge)) 
-                vector = edge.verts[1].co - edge.verts[0].co
-                if edge_length_debug: self.report({'INFO'}, 'edge.verts[1].co, edge.verts[0].co '+str(edge.verts[1].co)+' '+str(edge.verts[0].co) )
+                vector = verts[1] - verts[0]
+                if edge_length_debug: self.report({'INFO'}, 'edge.verts[1].co, edge.verts[0].co '+str(verts[1])+' '+str(verts[0]) )
                 if edge_length_debug: self.report({'INFO'}, 'vector '+str(vector)) 
                 vector.length = abs(self.target_length)
                 
@@ -121,18 +128,26 @@ class LengthSet(bpy.types.Operator):
 
                 if self.target_length > 0:
                     if not self.incremental:
-                        edge.verts[0].co = edge.verts[1].co - vector
+                        edge.verts[0].co = verts[1] - vector
                     else:
-                        edge.verts[0].co = edge.verts[0].co  - vector 
+                        edge.verts[0].co = verts[0]  - vector 
 
                     if edge_length_debug: self.report({'INFO'}, 'self.target_length > 0') 
                     
                 elif self.target_length < 0:
                     if not self.incremental:                    
-                        edge.verts[0].co = edge.verts[1].co + vector
+                        edge.verts[0].co = verts[1] + vector
                     else:
-                        edge.verts[0].co = edge.verts[0].co  + vector 
-                    if edge_length_debug: self.report({'INFO'}, 'self.target_length < 0') 
+                        edge.verts[0].co = verts[0]  + vector 
+                
+                #if self.invert_vert_pos:
+                    # this rotate it
+                    #~ a = mathutils.Vector( edge.verts[0].co )
+                    #~ b = mathutils.Vector( edge.verts[1].co )
+                    #~ edge.verts[0].co = b
+                    #~ edge.verts[1].co = a
+                    #edge.verts[0].co = edge.verts[0].co - edge.verts[1].co
+                    
                     
             bmesh.update_edit_mesh(obj.data, True)
         return {'FINISHED'}

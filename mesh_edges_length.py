@@ -2,7 +2,7 @@ bl_info = {
     'name': "set edges length",
     'description': "edges length",
     'author': "Giuseppe De Marco [BlenderLab] inspired by NirenYang",
-    'version': (0, 0, 1),
+    'version': (0, 0, 3),
     'blender': (2, 7, 0, 5),
     'location': '[Toolbar][Tools][Mesh Tools]: set Length(Shit+Alt+E)',
     'warning': "",
@@ -32,6 +32,15 @@ def get_selected(bmesh_obj, geometry_type):
             selected.append(i)
     return selected
 
+def get_center_vector( verts ):
+    """
+    verts = [mathutils.Vector((x,y,z)), mathutils.Vector((x,y,z))]
+    """
+    center_vector = mathutils.Vector( ((( verts[1][0] + verts[0][0] )/2.)
+                                    , (( verts[1][1] + verts[0][1] )/2.)
+                                    , (( verts[1][2] + verts[0][2] )/2.) ) )
+    return center_vector
+    
 
 class LengthSet(bpy.types.Operator):
     bl_idname = "object.mesh_edge_length_set"
@@ -41,21 +50,10 @@ class LengthSet(bpy.types.Operator):
     
     target_length = FloatProperty(name = 'length', default = 0.0)
     
-    #~ incremental = BoolProperty(\
+    #~ dummy_check_box = BoolProperty(\
         #~ name="incremental",\
         #~ default=False,\
         #~ description="incremental")
-        
-    #~ proportional_resize = BoolProperty(\
-        #~ name="proportional direction",\
-        #~ default=False,\
-        #~ description="increase the edge in a proportional direction")
-        #~ 
-    #~ invert = BoolProperty(\
-        #~ name="invert vertices",\
-        #~ default=False,\
-        #~ description="invert vertices")
-
 
     behaviour = EnumProperty(
         items = [('normal', 'normal', 'One'), 
@@ -97,8 +95,6 @@ class LengthSet(bpy.types.Operator):
             self.report({'ERROR'}, _error_message)
             return {'CANCELLED'}
         
-        if edge_length_debug: self.report({'INFO'}, str(self.target_length))
-
         self.edge_length_win_opened = True
         self.execute(self.context)
     
@@ -110,68 +106,67 @@ class LengthSet(bpy.types.Operator):
         obj = context.edit_object
         bm = bmesh.from_edit_mesh(obj.data)
         
-        #self.switch_point = False
         self.selected_edges = get_selected(bm, 'edges')
         
         if not self.edge_length_win_opened: 
             self.open_edge_length_window( bm )
         
         else:
-            self.edge_length_win_opened = False
-            if edge_length_debug: self.report({'INFO'}, 'win_close')
-            
+            self.edge_length_win_opened = False            
             for edge in self.selected_edges:
                 
-                #~ if self.invert_vert_pos:
-                    #~ verts = [edge.verts[1].co, edge.verts[0].co]
-                #~ else:
-                verts = [edge.verts[0].co, edge.verts[1].co]
-                
-                if edge_length_debug: self.report({'INFO'}, 'edge '+str(edge)) 
-                if edge_length_debug: self.report({'INFO'}, self.behaviour )
 
+                verts = [edge.verts[0].co, edge.verts[1].co]
 
                 if self.behaviour == 'invert':
                     vector = verts[0] - verts[1]
                 elif self.behaviour == 'proportional':
-                    vector = verts[1] - verts[0]
-                    if edge_length_debug: self.report({'WARNING'}, 'proportional not implemented yet !' )
+                    
+                    center_vector = get_center_vector( verts )
+
+                    vector = (verts[1] - center_vector) - (verts[0] - center_vector )
+
+                    self.report({'WARNING'}, 'proportional not implemented yet !' )
+                    if edge_length_debug: self.report({'INFO'}, '\n center vector '+str(center_vector))
                     
                 else:
                     vector = verts[1] - verts[0]
+                                
+                if edge_length_debug: self.report({'INFO'}, '\n vector '+str(vector)) 
                 
-                if edge_length_debug: self.report({'INFO'}, 'edge.verts[1].co, edge.verts[0].co '+str(verts[1])+' '+str(verts[0]) )
-                if edge_length_debug: self.report({'INFO'}, 'vector '+str(vector)) 
                 vector.length = abs(self.target_length)
                 
-                if edge_length_debug: self.report({'INFO'}, 'vector '+str(vector.length)) 
-                if edge_length_debug: self.report({'INFO'}, 'target_length'+str(vector.length)) 
-
+                if edge_length_debug: self.report({'INFO'}, \
+                '\n edge.verts[0].co '+str(verts[0])+\
+                '\n edge.verts[1].co '+str(verts[1])+\
+                '\n vector'+str(vector)+ '\n vector.length'+ str(vector.length))
+                              
                 if self.target_length > 0:
-
-                    edge.verts[0].co = verts[1] - vector
+                    
                     if self.behaviour == 'incremental':
                         edge.verts[0].co = verts[0]  - vector 
-
-                    if edge_length_debug: self.report({'INFO'}, 'self.target_length > 0') 
+                    elif self.behaviour == 'proportional':
+                        edge.verts[1].co = center_vector  + vector / 2
+                        edge.verts[0].co = center_vector  - vector / 2
+                    else:
+                        edge.verts[0].co = verts[1] - vector
                     
                 elif self.target_length < 0:                  
-                    edge.verts[0].co = verts[1] + vector
                     if self.behaviour == 'incremental':
                         edge.verts[0].co = verts[0]  + vector 
-                #if self.invert_vert_pos:
-                    # this rotate it
-                    #~ a = mathutils.Vector( edge.verts[0].co )
-                    #~ b = mathutils.Vector( edge.verts[1].co )
-                    #~ edge.verts[0].co = b
-                    #~ edge.verts[1].co = a
-                    #edge.verts[0].co = edge.verts[0].co - edge.verts[1].co
-                
-                # eventuale nuovo approccio:
-                # 1. trova il centro dell' edge 
-                # 2. sfrutta: bpy.ops.transform.resize(value=(2.53986, 2.53986, 2.53986), constraint_axis=(False, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+                    elif self.behaviour == 'proportional':
+                        edge.verts[1].co = center_vector  - vector / 2
+                        edge.verts[0].co = center_vector  + vector / 2
 
+                    else:
+                        edge.verts[0].co = verts[1] + vector
                 
+                
+                if edge_length_debug: self.report({'INFO'}, \
+                '\n edge.verts[0].co'+str(verts[0])+\
+                '\n edge.verts[1].co'+str(verts[1])+\
+                '\n vector'+str(vector) )
+
             bmesh.update_edit_mesh(obj.data, True)
         return {'FINISHED'}
 

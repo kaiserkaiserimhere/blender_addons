@@ -19,7 +19,7 @@ from bpy.props import BoolProperty, FloatProperty, EnumProperty
 
 edge_length_debug = False
 edge_length_win_opened = False
-_error_message = 'Edge selection is needed'
+_error_message = 'Please select one or more edge to fill select_history'
 
 
 def get_selected(bmesh_obj, geometry_type):
@@ -77,7 +77,10 @@ class LengthSet(bpy.types.Operator):
 
         obj = context.edit_object
         bm = bmesh.from_edit_mesh(obj.data)
-
+        
+        bpy.ops.mesh.select_mode(type="EDGE")
+        
+        # only the last selected edges will be rapresented in the dialog
         if bm.select_history and isinstance(bm.select_history[0], bmesh.types.BMEdge):
             vts_sequence = [i.index for i in bm.select_history[-1].verts]
             self.report({'INFO'}, str(type(bm.select_history[0])))            
@@ -103,6 +106,8 @@ class LengthSet(bpy.types.Operator):
     def execute(self, context):
         if edge_length_debug: self.report({'INFO'}, 'execute')
         
+        bpy.ops.mesh.select_mode(type="EDGE")
+
         self.context = context
         
         obj = context.edit_object
@@ -188,7 +193,10 @@ def menu_func(self, context):
 def register():
     bpy.utils.register_class(LengthSet)
     bpy.types.VIEW3D_PT_tools_meshedit.append(menu_func)
-
+    
+    # edge contextual edit menu ( CTRL + E )
+    bpy.types.VIEW3D_MT_edit_mesh_edges.append(menu_func)
+    
     # hotkey
     kc = bpy.context.window_manager.keyconfigs.default.keymaps['Mesh']
     if LengthSet.bl_idname not in kc.keymap_items:
@@ -197,7 +205,9 @@ def register():
 def unregister():
     bpy.utils.unregister_class(LengthSet)
     bpy.types.VIEW3D_PT_tools_meshedit.remove(menu_func)
-    
+
+    bpy.types.VIEW3D_MT_edit_mesh_edges.remove(menu_func)
+
     # hotkey
     kc = bpy.context.window_manager.keyconfigs.default.keymaps['Mesh']
     if LengthSet.bl_idname in kc.keymap_items:

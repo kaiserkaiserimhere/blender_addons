@@ -17,7 +17,7 @@ import bmesh
 import mathutils
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
 
-edge_length_debug = True
+edge_length_debug = False
 edge_length_win_opened = False
 _error_message = 'Edge selection is needed'
 
@@ -50,16 +50,18 @@ class LengthSet(bpy.types.Operator):
     
     target_length = FloatProperty(name = 'length', default = 0.0)
     
-    #~ dummy_check_box = BoolProperty(\
-        #~ name="incremental",\
-        #~ default=False,\
-        #~ description="incremental")
+    incremental = BoolProperty(\
+        name="incremental",\
+        default=False,\
+        description="incremental")
 
     behaviour = EnumProperty(
-        items = [('normal', 'normal', 'One'), 
-                 ('incremental', 'incremental', 'Two'),
-                 ('proportional', 'proportional', 'Three'),
-                 ('invert', 'invert', 'Three')],
+        items = [
+                 ('proportional', 'proportional', 'Three'),        
+                 ('invert', 'invert', 'Three'),
+                 ('clockwise', 'clockwise', 'One'), 
+                 ('unclockwise', 'unclockwise', 'One'),                  
+                 ],
         name = "Resize behaviour")
             
     
@@ -120,15 +122,12 @@ class LengthSet(bpy.types.Operator):
 
                 if self.behaviour == 'invert':
                     vector = verts[0] - verts[1]
+                elif self.behaviour == 'unclockwise':
+                    vector = verts[1] - verts[0]
                 elif self.behaviour == 'proportional':
-                    
                     center_vector = get_center_vector( verts )
-
                     vector = (verts[1] - center_vector) - (verts[0] - center_vector )
-
-                    self.report({'WARNING'}, 'proportional not implemented yet !' )
-                    if edge_length_debug: self.report({'INFO'}, '\n center vector '+str(center_vector))
-                    
+                    if edge_length_debug: self.report({'INFO'}, '\n center vector '+str(center_vector)) 
                 else:
                     vector = verts[1] - verts[0]
                                 
@@ -142,26 +141,33 @@ class LengthSet(bpy.types.Operator):
                 '\n vector'+str(vector)+ '\n vector.length'+ str(vector.length))
                               
                 if self.target_length > 0:
-                    
-                    if self.behaviour == 'incremental':
-                        edge.verts[0].co = verts[0]  - vector 
-                    elif self.behaviour == 'proportional':
+                    if self.behaviour == 'proportional':
                         edge.verts[1].co = center_vector  + vector / 2
                         edge.verts[0].co = center_vector  - vector / 2
+                        if self.incremental:
+                            edge.verts[1].co = center_vector  + vector
+                            edge.verts[0].co = center_vector  - vector                                
+                    elif self.behaviour == 'unclockwise':
+                        edge.verts[1].co = verts[0] + vector
+                        if self.incremental: edge.verts[1].co = verts[1]  + vector                         
                     else:
                         edge.verts[0].co = verts[1] - vector
-                    
+                        if self.incremental: edge.verts[0].co = verts[0]  - vector 
+
                 elif self.target_length < 0:                  
-                    if self.behaviour == 'incremental':
-                        edge.verts[0].co = verts[0]  + vector 
-                    elif self.behaviour == 'proportional':
+                    if self.behaviour == 'proportional':
                         edge.verts[1].co = center_vector  - vector / 2
                         edge.verts[0].co = center_vector  + vector / 2
-
+                        if self.incremental:
+                            edge.verts[1].co = center_vector  - vector
+                            edge.verts[0].co = center_vector  + vector                           
+                    elif self.behaviour == 'unclockwise':
+                        edge.verts[1].co = verts[0] - vector     
+                        if self.incremental: edge.verts[1].co = verts[1]  - vector
                     else:
                         edge.verts[0].co = verts[1] + vector
-                
-                
+                        if self.incremental: edge.verts[0].co = verts[1]  + vector 
+
                 if edge_length_debug: self.report({'INFO'}, \
                 '\n edge.verts[0].co'+str(verts[0])+\
                 '\n edge.verts[1].co'+str(verts[1])+\

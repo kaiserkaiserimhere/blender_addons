@@ -17,7 +17,7 @@ import bmesh
 import mathutils
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
 
-edge_length_debug = True
+edge_length_debug = False
 _error_message = 'Please select one or more edge to fill select_history'
 
 
@@ -177,47 +177,16 @@ class LengthSet(bpy.types.Operator):
                         edge.verts[0].co = (center_vector  - vector / 2) -  self.originary_edge_length_dict[verts_index] / 2
 
                 elif self.behaviour == 'unclockwise':
-                    edge.verts[1].co = verts[0] + vector
                     if self.mode == 'increment':   
-                        edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index]
+                        edge.verts[1].co = verts[0]  + ( self.originary_edge_length_dict[verts_index] + vector )
                     elif self.mode == 'decrement':
-                        edge.verts[1].co = verts[0]  + self.originary_edge_length_dict[verts_index] 
-                        #edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]                         
-                        #edge.verts[1].co = ( verts[1]  - self.originary_edge_length_dict[verts_index] ) - vector                            
-                        #edge.verts[1].co = ( verts[0]  - self.originary_edge_length_dict[verts_index] ) - vector                        
-                        #edge.verts[1].co = verts[0]  - self.originary_edge_length_dict[verts_index]
-                        #edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]
-                        #edge.verts[1].co = verts[0]  - self.originary_edge_length_dict[verts_index] + vector
-                        # lo stesso di increment !
-                        #edge.verts[1].co = verts[0]  + self.originary_edge_length_dict[verts_index] + vector
-                        # lo sposto sulla y !
-                        #edge.verts[0].co = verts[0]  - self.originary_edge_length_dict[verts_index] + vector
-                        #edge.verts[0].co = verts[1]  - self.originary_edge_length_dict[verts_index]
-
+                        edge.verts[0].co = verts[1]  - ( self.originary_edge_length_dict[verts_index] - vector )
+                        
                 else:
-                    edge.verts[0].co = verts[1] - vector
                     if self.mode == 'increment': 
-                        edge.verts[1].co = verts[0]  - ( self.originary_edge_length_dict[verts_index] + vector )                    
+                        edge.verts[0].co = verts[1]  - ( self.originary_edge_length_dict[verts_index]  + vector )                        
                     elif self.mode == 'decrement':   
-                        # questo lo sposta di sulla y
-                        #edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] - vector
-                        edge.verts[1].co = ( verts[0]  - self.originary_edge_length_dict[verts_index] ) + vector
-
-            #elif self.target_length < 0:
-                #pass               
-                #if self.behaviour == 'proportional':
-                    #edge.verts[1].co = center_vector  - vector / 2
-                    #edge.verts[0].co = center_vector  + vector / 2
-                    #if self.mode == 'increment':
-                        #edge.verts[1].co = center_vector  - vector / 2  + (self.originary_edge_length_dict[verts_index] / 2 )
-                        #edge.verts[0].co = center_vector  + vector / 2  - (self.originary_edge_length_dict[verts_index] / 2 )     
-                #elif self.behaviour == 'unclockwise':
-                    #edge.verts[1].co = verts[0] - vector     
-                    #if self.mode == 'increment': edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] 
-                #else:
-                    #edge.verts[0].co = verts[1] + vector
-                    #if self.mode == 'increment': edge.verts[0].co = verts[0]  - self.originary_edge_length_dict[verts_index]
-            
+                        edge.verts[1].co = verts[0]  + ( self.originary_edge_length_dict[verts_index] - vector )
             
             if bpy.context.scene.unit_settings.system == 'IMPERIAL':
                 # yard conversion 2 metre conversion

@@ -90,8 +90,13 @@ class LengthSet(bpy.types.Operator):
         
         
         vector = bm.verts[vts_sequence[-2]].co - bm.verts[vts_sequence[-1]].co
+                
+        if bpy.context.scene.unit_settings.system == 'IMPERIAL':
+            # yard conversion 2 metre conversion
+            vector.length = ( 0.9144 * vector.length ) / 3
+
         self.target_length = vector.length
-        
+
         return wm.invoke_props_dialog(self)
 
     def open_edge_length_window(self, bm_obj):
@@ -172,7 +177,19 @@ class LengthSet(bpy.types.Operator):
                     else:
                         edge.verts[0].co = verts[1] + vector
                         if self.incremental: edge.verts[0].co = verts[1]  + vector 
-
+                
+                
+                if bpy.context.scene.unit_settings.system == 'IMPERIAL':
+                    # yard conversion 2 metre conversion
+                    #vector.length = ( 3. * vector.length ) / 0.9144
+                    # metre 2 yard conversion
+                    #vector.length = ( 0.9144 * vector.length ) / 3.                
+                    for mvert in edge.verts:
+                        # school time: 0.9144 : 3 = X : mvert
+                        mvert.co = ( 0.9144 * mvert.co ) / 3
+                    
+                    
+                
                 if edge_length_debug: self.report({'INFO'}, \
                 '\n edge.verts[0].co'+str(verts[0])+\
                 '\n edge.verts[1].co'+str(verts[1])+\

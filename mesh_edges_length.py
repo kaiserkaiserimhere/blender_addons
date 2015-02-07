@@ -2,7 +2,7 @@ bl_info = {
     'name': "set edges length",
     'description': "edges length",
     'author': "Giuseppe De Marco [BlenderLab] inspired by NirenYang",
-    'version': (0, 0, 3),
+    'version': (0, 1, 0),
     'blender': (2, 7, 0, 5),
     'location': '[Toolbar][Tools][Mesh Tools]: set Length(Shit+Alt+E)',
     'warning': "",
@@ -30,7 +30,7 @@ def get_selected(bmesh_obj, geometry_type):
     for i in getattr(bmesh_obj, geometry_type):
         if i.select:
             selected.append(i)
-    return selected
+    return tuple(selected)
 
 def get_center_vector( verts ):
     """
@@ -205,7 +205,6 @@ def register():
 def unregister():
     bpy.utils.unregister_class(LengthSet)
     bpy.types.VIEW3D_PT_tools_meshedit.remove(menu_func)
-
     bpy.types.VIEW3D_MT_edit_mesh_edges.remove(menu_func)
 
     # hotkey

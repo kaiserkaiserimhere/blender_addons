@@ -181,8 +181,19 @@ class LengthSet(bpy.types.Operator):
                     if self.mode == 'increment':   
                         edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index]
                     elif self.mode == 'decrement':
-                        edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] - vector
-                    
+                        edge.verts[1].co = verts[0]  + self.originary_edge_length_dict[verts_index] 
+                        #edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]                         
+                        #edge.verts[1].co = ( verts[1]  - self.originary_edge_length_dict[verts_index] ) - vector                            
+                        #edge.verts[1].co = ( verts[0]  - self.originary_edge_length_dict[verts_index] ) - vector                        
+                        #edge.verts[1].co = verts[0]  - self.originary_edge_length_dict[verts_index]
+                        #edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]
+                        #edge.verts[1].co = verts[0]  - self.originary_edge_length_dict[verts_index] + vector
+                        # lo stesso di increment !
+                        #edge.verts[1].co = verts[0]  + self.originary_edge_length_dict[verts_index] + vector
+                        # lo sposto sulla y !
+                        #edge.verts[0].co = verts[0]  - self.originary_edge_length_dict[verts_index] + vector
+                        #edge.verts[0].co = verts[1]  - self.originary_edge_length_dict[verts_index]
+
                 else:
                     edge.verts[0].co = verts[1] - vector
                     if self.mode == 'increment': 
@@ -190,7 +201,7 @@ class LengthSet(bpy.types.Operator):
                     elif self.mode == 'decrement':   
                         # questo lo sposta di sulla y
                         #edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] - vector
-                        edge.verts[1].co = verts[0]  - self.originary_edge_length_dict[verts_index] + vector
+                        edge.verts[1].co = ( verts[0]  - self.originary_edge_length_dict[verts_index] ) + vector
 
             #elif self.target_length < 0:
                 #pass               

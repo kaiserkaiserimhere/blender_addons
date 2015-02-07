@@ -6,6 +6,7 @@ http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Add-Ons
 
 
 * mesh_edges_length.py 
+
     Working with Cosenza Blender Training [1] I discovered some user habits, specially in engineers profiles, geoscientists and everyone of them who came from CAD experience, that needs the opportunity to set an edge lenght to a fixed, absolute, value.
     
     This awareness pushed me to search and then develop the addon that do this.

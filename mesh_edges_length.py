@@ -172,7 +172,7 @@ class LengthSet(bpy.types.Operator):
                         edge.verts[1].co = (center_vector  - vector / 2)  - (self.originary_edge_length_dict[verts_index] / 2 )
                         edge.verts[0].co = (center_vector  + vector / 2)  + (self.originary_edge_length_dict[verts_index] / 2 )
                         
-                elif self.behaviour == 'unclockwise':
+                elif self.behaviour == 'clockwise':
                     edge.verts[1].co = verts[0] + vector
                     if self.mode == 'increment':   edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]
                     elif self.mode == 'decrement':
@@ -194,7 +194,7 @@ class LengthSet(bpy.types.Operator):
                     if self.mode == 'increment':
                         edge.verts[1].co = center_vector  - vector / 2  + (self.originary_edge_length_dict[verts_index] / 2 )
                         edge.verts[0].co = center_vector  + vector / 2  - (self.originary_edge_length_dict[verts_index] / 2 )     
-                elif self.behaviour == 'unclockwise':
+                elif self.behaviour == 'clockwise':
                     edge.verts[1].co = verts[0] - vector     
                     if self.mode == 'increment': edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] 
                 else:

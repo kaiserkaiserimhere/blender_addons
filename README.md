@@ -26,10 +26,14 @@ http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Add-Ons
     It could be called in these ways:
     
     Shift+Alt+E, I mantained the Yang approach, it was smart
+    
     in Toolshelf, It was appended in Tools tab
+    
     CTRL+E, in Edge Special menu, also appended on the bottom
+    
     I hope that this toy is to your liking as it was for me during its development, I'm also curious of your feedbacks.
     
      https://www.blendernetwork.org/events/view/7
+     
      https://developer.blender.org/T39999
     

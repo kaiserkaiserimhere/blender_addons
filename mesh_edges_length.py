@@ -181,12 +181,18 @@ class LengthSet(bpy.types.Operator):
                         edge.verts[1].co = verts[0]  + ( self.originary_edge_length_dict[verts_index] + vector )
                     elif self.mode == 'decrement':
                         edge.verts[0].co = verts[1]  - ( self.originary_edge_length_dict[verts_index] - vector )
-                        
+                    else:
+                        edge.verts[1].co = verts[0]   + vector
+  
+                    
                 else:
                     if self.mode == 'increment': 
                         edge.verts[0].co = verts[1]  - ( self.originary_edge_length_dict[verts_index]  + vector )                        
                     elif self.mode == 'decrement':   
                         edge.verts[1].co = verts[0]  + ( self.originary_edge_length_dict[verts_index] - vector )
+                    else:
+                        edge.verts[0].co = verts[1]  - vector
+
             
             if bpy.context.scene.unit_settings.system == 'IMPERIAL':
                 # yard conversion 2 metre conversion
@@ -211,7 +217,7 @@ class LengthSet(bpy.types.Operator):
         
 def menu_func(self, context):
     self.layout.operator_context = 'INVOKE_DEFAULT'
-    #self.layout.label(text="edges length:")
+    self.layout.label(text="Edges length:")
     row = self.layout.row(align=True)
     row.operator(LengthSet.bl_idname, "Set edges length")
     self.layout.separator()

@@ -24,11 +24,11 @@ _error_message = 'Please select one or more edge to fill select_history'
 def get_edge_vector( edge ):
     verts = ( edge.verts[0].co, edge.verts[1].co)
     
-    if verts[1] >= verts[0]:
-        vector = verts[1] - verts[0]
-    else:
-        vector = verts[0] - verts[1]
-    
+    #if verts[1] >= verts[0]:
+        #vector = verts[1] - verts[0]
+    #else:
+        #vector = verts[0] - verts[1]
+    vector = verts[1] - verts[0]
     return vector
 
 def get_selected(bmesh_obj, geometry_type):

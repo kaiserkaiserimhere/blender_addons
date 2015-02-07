@@ -21,6 +21,16 @@ edge_length_debug = True
 _error_message = 'Please select one or more edge to fill select_history'
 
 
+def get_edge_vector( edge ):
+    verts = ( edge.verts[0].co, edge.verts[1].co)
+    
+    if verts[1] >= verts[0]:
+        vector = verts[1] - verts[0]
+    else:
+        vector = verts[0] - verts[1]
+    
+    return vector
+
 def get_selected(bmesh_obj, geometry_type):
     """
     geometry type should be edges, verts or faces 
@@ -72,9 +82,7 @@ class LengthSet(bpy.types.Operator):
                  ],
         name = "Resize behaviour")
             
-    originary_edge_length = None
-    originary_edge0       = None
-    originary_edge1       = None
+    originary_edge_length_dict = {}
     
     @classmethod
     def poll(cls, context):
@@ -88,26 +96,25 @@ class LengthSet(bpy.types.Operator):
         
         bpy.ops.mesh.select_mode(type="EDGE")
         
-        # only the last selected edges will be rapresented in the dialog
-        if bm.select_history and isinstance(bm.select_history[0], bmesh.types.BMEdge):
-            vts_sequence = [i.index for i in bm.select_history[-1].verts]
-            #self.report({'INFO'}, str(type(bm.select_history[0])))            
+        self.selected_edges = get_selected(bm, 'edges')
+        
+        if self.selected_edges:
+            for edge in self.selected_edges:
+                vector = get_edge_vector( edge )
+                
+                # warning, it's a constant !
+                verts_index = ''.join((str(edge.verts[0].index), str(edge.verts[1].index)))
+                self.originary_edge_length_dict[ verts_index ] = vector
+                self.old_length = vector.length
         else:
             self.report({'ERROR'}, _error_message)
             return {'CANCELLED'}        
-        
-        
-        vector = bm.verts[vts_sequence[-2]].co - bm.verts[vts_sequence[-1]].co
-                
-        if bpy.context.scene.unit_settings.system == 'IMPERIAL':
-            # yard conversion 2 metre conversion
-            vector.length = ( 0.9144 * vector.length ) / 3
 
-        if not self.originary_edge_length: 
-            self.originary_edge_length = vector
-            self.originary_edge0 = bm.verts[0]
-            self.originary_edge1 = bm.verts[1]
-            self.old_length = vector.length
+        if edge_length_debug: self.report({'INFO'}, str(self.originary_edge_length_dict)) 
+        
+        if bpy.context.scene.unit_settings.system == 'IMPERIAL':
+            # imperial conversion 2 metre conversion
+            vector.length = ( 0.9144 * vector.length ) / 3
 
         self.target_length = vector.length
 
@@ -130,51 +137,51 @@ class LengthSet(bpy.types.Operator):
             return {'CANCELLED'}
 
         for edge in self.selected_edges:
-            verts = [edge.verts[0].co, edge.verts[1].co]
-
-            if self.behaviour == 'invert':
-                vector = verts[0] - verts[1]
-            elif self.behaviour == 'unclockwise':
-                vector = verts[1] - verts[0]
-            elif self.behaviour == 'proportional':
-                center_vector = get_center_vector( verts )
-                vector = (verts[1] - center_vector) - (verts[0] - center_vector )
-                if edge_length_debug: self.report({'INFO'}, '\n center vector '+str(center_vector)) 
-            else:
-                vector = verts[1] - verts[0]
             
-            
-            
-            if edge_length_debug: self.report({'INFO'}, ' - '.join( ('vector '+str(vector), 'originary_vector '+str(self.originary_edge_length) ))) 
-            
+            vector = get_edge_vector( edge )
+            # what we shold see in originary length dialog field
+            self.old_length = vector.length
+                        
             vector.length = abs(self.target_length)
+            center_vector = get_center_vector( ( edge.verts[0].co, edge.verts[1].co) )
+
+            if edge_length_debug: self.report({'INFO'}, \
+                                  ' - '.join( ('vector '+str(vector), \
+                                  'originary_vector '+str(self.originary_edge_length_dict)\
+                                  ))) 
+
+            verts = ( edge.verts[0].co, edge.verts[1].co)
+            
+            verts_index = ''.join((str(edge.verts[0].index), str(edge.verts[1].index)))
             
             if edge_length_debug: self.report({'INFO'}, \
             '\n edge.verts[0].co '+str(verts[0])+\
             '\n edge.verts[1].co '+str(verts[1])+\
-            '\n vector'+str(vector)+ '\n vector.length'+ str(vector.length))
-                          
+            '\n vector.length'+ str(vector.length))
+            
+            # the clockwise direction have v1 -> v0, unclockwise v0 -> v1
+            
             if self.target_length > 0:
                 if self.behaviour == 'proportional':
                     edge.verts[1].co = center_vector  + vector / 2
                     edge.verts[0].co = center_vector  - vector / 2
-                    if self.mode == 'increment':
-                        edge.verts[1].co = center_vector  + vector / 2  - (self.originary_edge_length / 2 )
-                        edge.verts[0].co = center_vector  - vector / 2  + (self.originary_edge_length / 2 )
-                    elif self.mode == 'decrement':
-                        edge.verts[1].co = center_vector  - vector / 2  - (self.originary_edge_length / 2 )
-                        edge.verts[0].co = center_vector  + vector / 2  + (self.originary_edge_length / 2 )
+                    if self.mode == 'decrement':
+                        edge.verts[1].co = (center_vector  + vector / 2)  - (self.originary_edge_length_dict[verts_index] / 2 )
+                        edge.verts[0].co = (center_vector  - vector / 2) + (self.originary_edge_length_dict[verts_index] / 2 )
+                    elif self.mode == 'increment':
+                        edge.verts[1].co = (center_vector  - vector / 2)  - (self.originary_edge_length_dict[verts_index] / 2 )
+                        edge.verts[0].co = (center_vector  + vector / 2)  + (self.originary_edge_length_dict[verts_index] / 2 )
                         
                 elif self.behaviour == 'unclockwise':
                     edge.verts[1].co = verts[0] + vector
-                    if self.mode == 'increment':   edge.verts[1].co = verts[1]  - self.originary_edge_length   
+                    if self.mode == 'increment':   edge.verts[1].co = verts[1]  - self.originary_edge_length_dict[verts_index]
                     elif self.mode == 'decrement':
                         edge.verts[1].co = verts[0] + vector
-                        edge.verts[1].co = verts[0]  - ( self.originary_edge_length + vector )
+                        edge.verts[1].co = verts[0]  - ( self.originary_edge_length_dict[verts_index] + vector )
                     
                 else:
                     edge.verts[0].co = verts[1] - vector
-                    if self.mode == 'increment':   edge.verts[0].co = verts[0]  + self.originary_edge_length
+                    if self.mode == 'increment':   edge.verts[0].co = verts[0]  + self.originary_edge_length_dict[verts_index]
                     elif self.mode == 'decrement': 
                         edge.verts[1].co = verts[1] - vector
                         edge.verts[1].co = verts[1]  - ( self.originary_edge_length + vector )                    
@@ -185,14 +192,14 @@ class LengthSet(bpy.types.Operator):
                     edge.verts[1].co = center_vector  - vector / 2
                     edge.verts[0].co = center_vector  + vector / 2
                     if self.mode == 'increment':
-                        edge.verts[1].co = center_vector  - vector / 2  + (self.originary_edge_length / 2 )
-                        edge.verts[0].co = center_vector  + vector / 2  - (self.originary_edge_length / 2 )     
+                        edge.verts[1].co = center_vector  - vector / 2  + (self.originary_edge_length_dict[verts_index] / 2 )
+                        edge.verts[0].co = center_vector  + vector / 2  - (self.originary_edge_length_dict[verts_index] / 2 )     
                 elif self.behaviour == 'unclockwise':
                     edge.verts[1].co = verts[0] - vector     
-                    if self.mode == 'increment': edge.verts[1].co = verts[1]  + self.originary_edge_length 
+                    if self.mode == 'increment': edge.verts[1].co = verts[1]  + self.originary_edge_length_dict[verts_index] 
                 else:
                     edge.verts[0].co = verts[1] + vector
-                    if self.mode == 'increment': edge.verts[0].co = verts[0]  - self.originary_edge_length           
+                    if self.mode == 'increment': edge.verts[0].co = verts[0]  - self.originary_edge_length_dict[verts_index]
             
             
             if bpy.context.scene.unit_settings.system == 'IMPERIAL':
@@ -203,17 +210,16 @@ class LengthSet(bpy.types.Operator):
                 for mvert in edge.verts:
                     # school time: 0.9144 : 3 = X : mvert
                     mvert.co = ( 0.9144 * mvert.co ) / 3
-                
-                
+            
             
             if edge_length_debug: self.report({'INFO'}, \
             '\n edge.verts[0].co'+str(verts[0])+\
             '\n edge.verts[1].co'+str(verts[1])+\
-            '\n vector'+str(vector) )
+            '\n vector'+str(vector)+'\n v1 > v0:'+str( (verts[1]>=verts[0]  ) ) )
+            
+            bmesh.update_edit_mesh(obj.data, True)
         
-        self.old_length = self.originary_edge_length.length
         
-        bmesh.update_edit_mesh(obj.data, True)
         return {'FINISHED'}
 
         

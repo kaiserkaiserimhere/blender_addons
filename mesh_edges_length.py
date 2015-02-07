@@ -47,13 +47,21 @@ class LengthSet(bpy.types.Operator):
     bl_description = "change selected edges length (Shit+Alt+E)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    old_length = FloatProperty(name = 'originary length', default = 0.00, unit = 'LENGTH', precision = 3, set = print(''))
-    target_length = FloatProperty(name = 'length', default = 0.00, unit = 'LENGTH', precision = 3)
+    old_length = FloatProperty(name = 'originary length', default = 0.00, unit = 'LENGTH', precision = 5, set = print(''))
+    target_length = FloatProperty(name = 'length', default = 0.00, unit = 'LENGTH', precision = 5)
     
-    incremental = BoolProperty(\
-        name="incremental",\
-        default=False,\
-        description="incremental")
+    #incremental = BoolProperty(\
+    #    name="incremental",\
+    #    default=False,\
+    #    description="incremental")
+
+    mode = EnumProperty(
+        items = [
+                 ('fixed', 'fixed', 'fixed'),        
+                 ('increment', 'increment', 'increment'), 
+                 ('decrement', 'decrement', 'decrement'),                  
+                 ],
+        name = "mode")
 
     behaviour = EnumProperty(
         items = [
@@ -150,29 +158,41 @@ class LengthSet(bpy.types.Operator):
                 if self.behaviour == 'proportional':
                     edge.verts[1].co = center_vector  + vector / 2
                     edge.verts[0].co = center_vector  - vector / 2
-                    if self.incremental:
+                    if self.mode == 'increment':
                         edge.verts[1].co = center_vector  + vector / 2  - (self.originary_edge_length / 2 )
-                        edge.verts[0].co = center_vector  - vector / 2  + (self.originary_edge_length / 2 )     
+                        edge.verts[0].co = center_vector  - vector / 2  + (self.originary_edge_length / 2 )
+                    elif self.mode == 'decrement':
+                        edge.verts[1].co = center_vector  - vector / 2  - (self.originary_edge_length / 2 )
+                        edge.verts[0].co = center_vector  + vector / 2  + (self.originary_edge_length / 2 )
+                        
                 elif self.behaviour == 'unclockwise':
                     edge.verts[1].co = verts[0] + vector
-                    if self.incremental: edge.verts[1].co = verts[1]  - self.originary_edge_length           
+                    if self.mode == 'increment':   edge.verts[1].co = verts[1]  - self.originary_edge_length   
+                    elif self.mode == 'decrement':
+                        edge.verts[1].co = verts[0] + vector
+                        edge.verts[1].co = verts[0]  - ( self.originary_edge_length + vector )
+                    
                 else:
                     edge.verts[0].co = verts[1] - vector
-                    if self.incremental: edge.verts[0].co = verts[0]  + self.originary_edge_length
+                    if self.mode == 'increment':   edge.verts[0].co = verts[0]  + self.originary_edge_length
+                    elif self.mode == 'decrement': 
+                        edge.verts[1].co = verts[1] - vector
+                        edge.verts[1].co = verts[1]  - ( self.originary_edge_length + vector )                    
+
 
             elif self.target_length < 0:                  
                 if self.behaviour == 'proportional':
                     edge.verts[1].co = center_vector  - vector / 2
                     edge.verts[0].co = center_vector  + vector / 2
-                    if self.incremental:
+                    if self.mode == 'increment':
                         edge.verts[1].co = center_vector  - vector / 2  + (self.originary_edge_length / 2 )
                         edge.verts[0].co = center_vector  + vector / 2  - (self.originary_edge_length / 2 )     
                 elif self.behaviour == 'unclockwise':
                     edge.verts[1].co = verts[0] - vector     
-                    if self.incremental: edge.verts[1].co = verts[1]  + self.originary_edge_length           
+                    if self.mode == 'increment': edge.verts[1].co = verts[1]  + self.originary_edge_length 
                 else:
                     edge.verts[0].co = verts[1] + vector
-                    if self.incremental: edge.verts[0].co = verts[0]  - self.originary_edge_length           
+                    if self.mode == 'increment': edge.verts[0].co = verts[0]  - self.originary_edge_length           
             
             
             if bpy.context.scene.unit_settings.system == 'IMPERIAL':

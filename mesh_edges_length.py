@@ -99,8 +99,22 @@ class LengthSet(bpy.types.Operator):
         self.selected_edges = get_selected(bm, 'edges')
         
         if self.selected_edges:
+            
+            vertex_set = []
+            
             for edge in self.selected_edges:
                 vector = get_edge_vector( edge )
+                
+                if edge.verts[0].index not in vertex_set:
+                    vertex_set.append( edge.verts[0].index )
+                else: 
+                    self.report( {'ERROR_INVALID_INPUT'}, 'edges with shared vertices not permitted. Use scale instead.' )
+                    return {'CANCELLED'} 
+                if edge.verts[1].index not in vertex_set:
+                    vertex_set.append( edge.verts[1].index )
+                else: 
+                    self.report( {'ERROR_INVALID_INPUT'}, 'edges with shared vertices not permitted. Use scale instead.' )
+                    return {'CANCELLED'} 
                 
                 # warning, it's a constant !
                 verts_index = ''.join((str(edge.verts[0].index), str(edge.verts[1].index)))
@@ -120,6 +134,7 @@ class LengthSet(bpy.types.Operator):
 
         return wm.invoke_props_dialog(self)
     
+
     def execute(self, context):
         if edge_length_debug: self.report({'INFO'}, 'execute')
         

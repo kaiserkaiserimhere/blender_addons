@@ -232,10 +232,10 @@ class LengthSet(bpy.types.Operator):
         
 def menu_func(self, context):
     self.layout.operator_context = 'INVOKE_DEFAULT'
+    self.layout.separator()    
     self.layout.label(text="Edges length:")
     row = self.layout.row(align=True)
     row.operator(LengthSet.bl_idname, "Set edges length")
-    self.layout.separator()
     
     
 def register():

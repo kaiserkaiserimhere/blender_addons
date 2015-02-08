@@ -15,7 +15,7 @@ bl_info = {
 import bpy
 import bmesh
 import mathutils
-from bpy.props import BoolProperty, FloatProperty, EnumProperty
+from bpy.props import BoolProperty, FloatProperty, EnumProperty, StringProperty
 
 edge_length_debug = False
 _error_message = 'Please select one or more edge to fill select_history'
@@ -57,7 +57,7 @@ class LengthSet(bpy.types.Operator):
     bl_description = "change selected edges length (Shit+Alt+E)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    old_length = FloatProperty(name = 'originary length', default = 0.00, unit = 'LENGTH', precision = 5, set = print(''))
+    old_length = StringProperty(name = 'originary length') #, default = 0.00, unit = 'LENGTH', precision = 5, set = print(''))
     target_length = FloatProperty(name = 'length', default = 0.00, unit = 'LENGTH', precision = 5)
     
     #incremental = BoolProperty(\
@@ -119,7 +119,7 @@ class LengthSet(bpy.types.Operator):
                 # warning, it's a constant !
                 verts_index = ''.join((str(edge.verts[0].index), str(edge.verts[1].index)))
                 self.originary_edge_length_dict[ verts_index ] = vector
-                self.old_length = vector.length
+                self.old_length = str(vector.length)
         else:
             self.report({'ERROR'}, _error_message)
             return {'CANCELLED'}        
@@ -155,7 +155,7 @@ class LengthSet(bpy.types.Operator):
             
             vector = get_edge_vector( edge )
             # what we shold see in originary length dialog field
-            self.old_length = vector.length
+            self.old_length = str(vector.length)
                         
             vector.length = abs(self.target_length)
             center_vector = get_center_vector( ( edge.verts[0].co, edge.verts[1].co) )
